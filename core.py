@@ -1,3 +1,17 @@
+import io
+import unicodedata
+import warnings
+from datetime import datetime, timedelta
+
+import pandas as pd
+import numpy as np
+import xlsxwriter
+try:
+    import holidays as hol_lib
+except ImportError:
+    hol_lib = None
+
+warnings.filterwarnings("ignore")
 
 # ════════════════════════════════════════════════════════════════════
 #  FUNÇÕES UTILITÁRIAS
