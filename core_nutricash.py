@@ -22,6 +22,19 @@ def to_upper(val):
         return val
     return str(val).upper().strip() if isinstance(val, str) else val
 
+def calc_prev(venc, days):
+    if pd.isna(venc) or pd.isna(days):
+        return pd.NaT
+    try:
+        dt  = venc.to_pydatetime() if isinstance(venc, pd.Timestamp) else venc
+        res = pd.Timestamp(dt + timedelta(days=int(float(days))))
+        # Ajusta se cair em sexta, sábado, domingo ou feriado
+        if res.weekday() >= 4 or res.date() in br_holidays(res.year):
+            return next_util(res)
+        return res
+    except Exception:
+        return pd.NaT
+
 def safe_rbase(val):
     try:
         if val is None or (isinstance(val, float) and pd.isna(val)):
@@ -276,6 +289,15 @@ def process_files_nutricash(csv_bytes, xlsx_bytes):
     df_av = out[~mask_venc].copy().reset_index(drop=True)
     df_vd = out[ mask_venc].copy().reset_index(drop=True)
     df_vd = df_vd.drop(columns=['PAGA NA DATA', 'UF'], errors='ignore')
+
+    # PREV PAGTO dos vencidos = VENCIMENTO + ATRASO dias → próximo dia útil
+    def calc_prev_vd(row):
+        venc = row.get('VENCIMENTO')
+        atr  = row.get('ATRASO')
+        if pd.isna(venc) or str(atr).strip() in ('', 'nan', 'None', 'REVISAR'):
+            return pd.NaT
+        return calc_prev(venc, atr)
+    df_vd['PREV PAGTO'] = df_vd.apply(calc_prev_vd, axis=1)
 
     print(f"\n📋 A VENCER : {len(df_av):,} registros")
     print(f"📋 VENCIDOS : {len(df_vd):,} registros")

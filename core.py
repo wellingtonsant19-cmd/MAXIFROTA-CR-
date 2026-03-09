@@ -68,7 +68,10 @@ def calc_prev(venc, days):
     try:
         dt  = venc.to_pydatetime() if isinstance(venc, pd.Timestamp) else venc
         res = pd.Timestamp(dt + timedelta(days=int(float(days))))
-        return next_util(res) if is_fri_or_holiday(res) else res
+        # Ajusta se cair em sexta, sábado, domingo ou feriado
+        if res.weekday() >= 4 or res.date() in br_holidays(res.year):
+            return next_util(res)
+        return res
     except Exception:
         return pd.NaT
 
@@ -293,6 +296,16 @@ def process_files(csv_bytes, xlsx_bytes):
 
     # Regra 25 – remover PAGA NA DATA e UF da aba Vencidos
     df_vd = df_vd.drop(columns=['PAGA NA DATA', 'UF'], errors='ignore')
+
+    # PREV PAGTO dos vencidos = VENCIMENTO + ATRASO dias → próximo dia útil
+    # (sobrescreve o valor espelhado da planilha anterior)
+    def calc_prev_vd(row):
+        venc  = row.get('VENCIMENTO')
+        atr   = row.get('ATRASO')
+        if pd.isna(venc) or str(atr).strip() in ('', 'nan', 'None', 'REVISAR'):
+            return pd.NaT
+        return calc_prev(venc, atr)
+    df_vd['PREV PAGTO'] = df_vd.apply(calc_prev_vd, axis=1)
 
     # ── 8. GERAR EXCEL ───────────────────────────────────────────────
     print("\n📝 Gerando Excel formatado ...")
