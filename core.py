@@ -475,6 +475,14 @@ def process_files(csv_bytes, xlsx_bytes):
 
     write_tab(df_av, 'A VENCER')
     write_tab(df_vd, 'VENCIDOS')
+
+    # Aba consolidada — todos os títulos juntos (A VENCER + VENCIDOS)
+    df_todos = pd.concat([df_av, df_vd], ignore_index=True)
+    # Ordenar por VENCIMENTO
+    df_todos['_sort'] = pd.to_datetime(df_todos['VENCIMENTO'], errors='coerce')
+    df_todos = df_todos.sort_values('_sort').drop(columns=['_sort'])
+    write_tab(df_todos, 'TODOS OS TÍTULOS')
+
     wb.close()
 
     output_buf.seek(0)
