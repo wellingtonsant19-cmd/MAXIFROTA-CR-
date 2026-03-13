@@ -126,7 +126,11 @@ def process_files(csv_bytes, xlsx_bytes):
 
     try:
         xf = pd.ExcelFile(io.BytesIO(xlsx_bytes))
-        for sname in ['A vencer MX', 'Vencidos MX']:
+        # Aceita tanto o formato original ('A vencer MX' / 'Vencidos MX')
+        # quanto o formato já processado ('A VENCER' / 'VENCIDOS' / 'TODOS OS TÍTULOS')
+        nomes_possiveis = ['A vencer MX', 'Vencidos MX',
+                           'A VENCER', 'VENCIDOS', 'TODOS OS TÍTULOS']
+        for sname in nomes_possiveis:
             if sname not in xf.sheet_names:
                 continue
             tmp = xf.parse(sname, header=None, dtype=str)
